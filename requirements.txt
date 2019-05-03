@@ -1,0 +1,2 @@
+wunderpy2==0.1.6
+phonetics==1.0.5

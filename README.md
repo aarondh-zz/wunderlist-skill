@@ -5,9 +5,11 @@ Manage your wunderlist tasks
 Manage your wunderlist tasks
 
 ## Examples
- - "What is on my list today?"
- - "What are my to do's?"
- - "What are my tasks"
+ - "What are my wonder lists"
+ - "List my wonder lists"
+ - "List my lists"
+ - "What are my lists"
+ - "Wonder list"
 
 
 ## Credits

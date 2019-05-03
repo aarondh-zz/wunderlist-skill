@@ -3,32 +3,32 @@
     "skillMetadata": {
         "sections": [
             {
-                "name": "Options << Name of section",
+                "name": "Options",
                 "fields": [
                     {
-                        "name": "internal_python_variable_name",
+                        "name": "default_task_listname",
                         "type": "text",
-                        "label": "Setting Friendly Display Name",
+                        "label": "Default task list name",
                         "value": "",
-                        "placeholder": "demo prompt in the input box"
+                        "placeholder": "Enter your default task list name here"
                     }
                 ]
             },
             {
-                "name": "Login << Name of another section",
+                "name": "Wunderlist Login",
                 "fields": [
                     {
                         "type": "label",
-                        "label": "Just a little bit of extra info for the user to understand following settings"
+                        "label": "To access your Wunderlists we will need the following login information"
                     },
                     {
-                        "name": "username",
+                        "name": "client_id",
                         "type": "text",
                         "label": "Username",
                         "value": ""
                     },
                     {
-                        "name": "password",
+                        "name": "client_secret",
                         "type": "password",
                         "label": "Password",
                         "value": ""
