@@ -153,14 +153,20 @@ class Wunderlist(MycroftSkill):
     @intent_file_handler('letslook.intent')
     def handle_letslook(self, message):
         listname = message.data.get('listname')
-        self.set_context('listname',listname);
-        self.speak_dialog('oklets',data={'listname':listname})
+        list = self.find_list_by_name(listname)
+        if list:
+            listname = list.get('title')
+            self.set_context('listname',listname);
+            self.speak_dialog('oklets',data={'listname':listname}, expect_response=True)
         
     @intent_file_handler('setdefaultlist.intent')
     def handle_setdefaultlist(self, message):
         listname = message.data.get('listname')
-        self.set_default_listname(listname);
-        self.speak_dialog('your.default.list',data={'listname':self.get_default_listname()})
+        list = self.find_list_by_name(listname)
+        if list:
+            listname = list.get('title')
+            self.set_default_listname(listname);
+            self.speak_dialog('your.default.list',data={'listname':self.get_default_listname()}, expect_response=True)          
         
     @intent_file_handler('whattasks.intent')
     def handle_whattasks(self, message):

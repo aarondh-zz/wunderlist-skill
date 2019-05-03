@@ -1,4 +1,4 @@
-let us look at (my|the) {{listname}} list
-how about the {{listname}} list
-go to (the|my|) {{listname}} (list|)
-talk about (my|the|) {{listname}} (list|)
+(let us|) look at (my|the) {{listname}} (wonder list|list|wunderlist)
+how about the {{listname}} (wonder list| list|wunderlist)
+go to (the|my|) {{listname}} (wonder list|list|wunderlist)
+(let us|) talk about (my|the|) {{listname}} (wonder list|list|wunderlist)

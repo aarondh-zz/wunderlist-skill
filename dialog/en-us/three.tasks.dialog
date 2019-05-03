@@ -1,2 +1,3 @@
-you have three items, {{one}}, {{two}}, and {{three}}
-just three: {{one}}, {{two}}, and {{three}}
+you have three items. {{one}}, {{two}}, and {{three}}
+just three items. {{one}}, {{two}}, and {{three}}
+only three items. {{one}}, {{two}}, and {{three}}
