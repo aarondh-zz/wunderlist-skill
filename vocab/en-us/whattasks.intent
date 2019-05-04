@@ -2,8 +2,8 @@ what do i have to do today
 what is on (the|my) (wonder|) list (today|now|)
 what is (left:) to do
 what do i do (today|now)
-what items do i have
-what items are on the list
-what items are there
+what {tasks} do i have
+what {tasks} are on (it|the list|my list)
+what {tasks} are there
 itemize (please|)
 list my stuff

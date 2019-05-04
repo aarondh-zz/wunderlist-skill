@@ -1,0 +1,3 @@
+add (task|item) {taskname} to the list
+add (task|item) {taskname} to {listname}
+add a (task|item)

@@ -1,4 +1,5 @@
 from mycroft import MycroftSkill, intent_file_handler
+from mycroft.skills.context import adds_context, removes_context
 from mycroft.util.log import getLogger
 import re
 import wunderpy2
@@ -14,7 +15,9 @@ api = wunderpy2.WunderApi()
 class Wunderlist(MycroftSkill):
     def __init__(self):
         MycroftSkill.__init__(self) 
-        self.client = ''
+        self.client = False
+        self.current_list = False
+        self.current_task = False
 
     def get_access_count(self):
         if self.settings.get('access_count'):
@@ -57,8 +60,8 @@ class Wunderlist(MycroftSkill):
     def match_names(self, name_a, name_b):
         return self.phonetic_match(name_a, name_b)
     
-    def phonetic_match(self, text_a, name_b):
-        return phonetics.metaphone(text_a) == phonetics.metaphone(name_b)
+    def phonetic_match(self, text_a, text_b):
+        return phonetics.metaphone(text_a) == phonetics.metaphone(text_b)
 
     def get_client_id(self):
         if not self.settings.get('client_id'):
@@ -99,16 +102,15 @@ class Wunderlist(MycroftSkill):
         self.speak_dialog('list.not.found',data={'listname': listname})
         return None
         
-    def read_list_by_name(self, listname):
-        list = self.find_list_by_name(listname)
+    def read_list(self, list):
         if list:
             client = self.get_client()
             tasks = client.get_tasks(list.get('id'))
             number_of_tasks = len(tasks)
             if number_of_tasks > 3:
-                self.speak_dialog('read.list', data={'listname': listname,'number_of_tasks': str(number_of_tasks)})
+                self.speak_dialog('read.list', data={'listname': list.get('title'),'number_of_tasks': str(number_of_tasks)})
                 for i, task in enumerate(tasks):
-                    self.speak_dialog(str(i+1) + ", " +task.get('title'))
+                    self.speak_dialog(str(i+1) + ", " + task.get('title'))
             elif number_of_tasks == 0:
                 self.speak_dialog('you.have.no.tasks')
             elif number_of_tasks == 1:
@@ -118,16 +120,33 @@ class Wunderlist(MycroftSkill):
             elif number_of_tasks == 3:
                 self.speak_dialog('three.tasks',data={'one': tasks[0].get('title'),'two': tasks[1].get('title'),'three': tasks[2].get('title')})
             
+    def read_list_by_name(self, listname):
+        list = self.find_list_by_name(listname)
+        if list:
+            self.read_list(list)
+        return list
+        
+    def find_task_by_name( self, list, taskname):
+        client = self.get_client()
+        if client:
+            tasks = client.get_tasks(list.get('id'))
+            for task in tasks:
+                if self.match_names(taskname, self.normalize_name(task.get('title'))):
+                    return task
+            self.speak_dialog('task.not.found',data={'listname': list.get('title'), 'taskname': taskname})
+        return None
+            
     @intent_file_handler('readmylist.intent')
+    @adds_context('listname')
     def handle_readmylist(self, message):
         if message.data.get("listname"):
             listname = str(message.data.get("listname"))
-            self.read_list_by_name(listname)
+            self.current_list = self.read_list_by_name(listname)
         else:
             self.speak_dialog('which.list')
 
-    @intent_file_handler('list.intent')
-    def handle_list(self, message):
+    @intent_file_handler('lists.intent')
+    def handle_lists(self, message):
         client = self.get_client()
         if client:
             lists = client.get_lists()
@@ -135,7 +154,7 @@ class Wunderlist(MycroftSkill):
             for i,list in enumerate(lists):
                 list_titles.append(list.get('title'))
 
-            self.speak_dialog('these.are.your.lists', data={'titles':', '.join(list_titles)})
+            self.speak_dialog('these.are.your.lists', data={'titles':'; '.join(list_titles)})
             
     @intent_file_handler('debug.intent')
     def handle_debug(self, message):
@@ -151,32 +170,94 @@ class Wunderlist(MycroftSkill):
             self.speak_dialog('you.have.no.default.list')
             
     @intent_file_handler('letslook.intent')
+    @adds_context('listname')
     def handle_letslook(self, message):
         listname = message.data.get('listname')
-        list = self.find_list_by_name(listname)
-        if list:
-            listname = list.get('title')
+        self.current_list = self.find_list_by_name(listname)
+        if self.current_list:
+            listname = self.current_list.get('title')
             self.set_context('listname',listname);
             self.speak_dialog('oklets',data={'listname':listname}, expect_response=True)
         
     @intent_file_handler('setdefaultlist.intent')
+    @adds_context('listname')
     def handle_setdefaultlist(self, message):
         listname = message.data.get('listname')
-        list = self.find_list_by_name(listname)
-        if list:
-            listname = list.get('title')
+        self.current_list = self.find_list_by_name(listname)
+        if self.current_list:
+            listname = self.current_list.get('title')
             self.set_default_listname(listname);
             self.speak_dialog('your.default.list',data={'listname':self.get_default_listname()}, expect_response=True)          
         
     @intent_file_handler('whattasks.intent')
     def handle_whattasks(self, message):
-        listname = message.data.get('listname')
-        if not listname:
+        if not self.current_list:
             listname = self.get_default_listname()
-        if listname:
-            self.read_list_by_name(listname)
+            self.current_list = self.read_list_by_name(self.current_list)
+        if self.current_list:
+            self.read_list(self.current_list)
         else:
             self.speak_dialog('you.have.no.default.list')
+            
+    @intent_file_handler('addtask.intent')
+    def handle_addtask(self, message):
+        listname = message.data.get('listname')
+        taskname = message.data.get('taskname')
+        if not self.current_list:
+            if not listname:
+                listname = self.get_response('ask.for.listname')
+            self.current_list = self.find_list_by_name(listname)
+        if self.current_list:
+            if not taskname:
+                taskname = self.get_response('ask.for.taskname')
+            client = self.get_client()
+            self.current_task = client.create_task( self.current_list.get('id'), taskname)
+            if self.current_task:
+                self.speak_dialog('task.added',data={'listname': self.current_list.get('title'), 'taskname': taskname})
+        else:
+            self.speak_dialog('you.have.no.default.list')
+       
+    @intent_file_handler('completetask.intent')
+    def handle_completetask(self, message):
+        listname = message.data.get('listname')
+        taskname = message.data.get('taskname')
+        if not self.current_list:
+            if not listname:
+                listname = self.get_response('ask.for.listname')
+            self.current_list = self.find_list_by_name(listname)
+        if self.current_list:
+            if not taskname:
+                taskname = self.get_response('ask.for.taskname')
+            self.current_task = self.find_task_by_name(self.current_list, taskname)
+            if self.current_task:
+                client = self.get_client()
+                self.current_task = client.update_task( self.current_task.get('id'), self.current_task.get('revision'), completed = True)
+                if self.current_task:
+                    self.speak_dialog('task.completed',data={'listname': self.current_list.get('title'), 'taskname': self.current_task.get('title')})
+        else:
+            self.speak_dialog('you.have.no.default.list')
+       
+            
+    @intent_file_handler('deletetask.intent')
+    def handle_deletetask(self, message):
+        listname = message.data.get('listname')
+        taskname = message.data.get('taskname')
+        if not self.current_list:
+            if not listname:
+                listname = self.get_response('ask.for.listname')
+            self.current_list = self.find_list_by_name(listname)
+        if self.current_list:
+            if not taskname:
+                taskname = self.get_response('ask.for.taskname')
+            self.current_task = self.find_task_by_name(self.current_list, taskname)
+            if self.current_task:
+                client = self.get_client()
+                client.delete_task( self.current_task.get('id'), self.current_task.get('revision'))
+                self.speak_dialog('task.deleted',data={'listname': self.current_list.get('title'), 'taskname': self.current_task.get('title')})
+                self.current_task = None
+        else:
+            self.speak_dialog('you.have.no.default.list')
+       
             
     @intent_file_handler('love.intent')
     def handle_love(self, message):
